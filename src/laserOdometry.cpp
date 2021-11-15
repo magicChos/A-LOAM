@@ -1,10 +1,9 @@
 // This is an advanced implementation of the algorithm described in the following paper:
 //   J. Zhang and S. Singh. LOAM: Lidar Odometry and Mapping in Real-time.
-//     Robotics: Science and Systems Conference (RSS). Berkeley, CA, July 2014. 
+//     Robotics: Science and Systems Conference (RSS). Berkeley, CA, July 2014.
 
 // Modifier: Tong Qin               qintonguav@gmail.com
 // 	         Shaozu Cao 		    saozu.cao@connect.ust.hk
-
 
 // Copyright 2013, Ji Zhang, Carnegie Mellon University
 // Further contributions copyright (c) 2016, Southwest Research Institute
@@ -58,7 +57,6 @@
 
 #define DISTORTION 0
 
-
 int corner_correspondence = 0, plane_correspondence = 0;
 
 constexpr double SCAN_PERIOD = 0.1;
@@ -110,13 +108,13 @@ std::mutex mBuf;
 // undistort lidar point
 void TransformToStart(PointType const *const pi, PointType *const po)
 {
-    //interpolation ratio
+    // interpolation ratio
     double s;
     if (DISTORTION)
         s = (pi->intensity - int(pi->intensity)) / SCAN_PERIOD;
     else
         s = 1.0;
-    //s = 1;
+    // s = 1;
     Eigen::Quaterniond q_point_last = Eigen::Quaterniond::Identity().slerp(s, q_last_curr);
     Eigen::Vector3d t_point_last = s * t_last_curr;
     Eigen::Vector3d point(pi->x, pi->y, pi->z);
@@ -134,8 +132,11 @@ void TransformToEnd(PointType const *const pi, PointType *const po)
 {
     // undistort point first
     pcl::PointXYZI un_point_tmp;
+    // un_point_tmp: 当前点在起始坐标系下的坐标
     TransformToStart(pi, &un_point_tmp);
 
+    // un_point_tmp = q_last_cur * point_end + t_last_curr
+    // point_end: 当前点在下一帧起始处的坐标
     Eigen::Vector3d un_point(un_point_tmp.x, un_point_tmp.y, un_point_tmp.z);
     Eigen::Vector3d point_end = q_last_curr.inverse() * (un_point - t_last_curr);
 
@@ -143,7 +144,7 @@ void TransformToEnd(PointType const *const pi, PointType *const po)
     po->y = point_end.y();
     po->z = point_end.z();
 
-    //Remove distortion time info
+    // Remove distortion time info
     po->intensity = int(pi->intensity);
 }
 
@@ -175,7 +176,7 @@ void laserCloudLessFlatHandler(const sensor_msgs::PointCloud2ConstPtr &surfPoint
     mBuf.unlock();
 }
 
-//receive all point cloud
+// receive all point cloud
 void laserCloudFullResHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudFullRes2)
 {
     mBuf.lock();
@@ -271,7 +272,9 @@ int main(int argc, char **argv)
             }
             else
             {
+                // 角点数量
                 int cornerPointsSharpNum = cornerPointsSharp->points.size();
+                // 平面点数量
                 int surfPointsFlatNum = surfPointsFlat->points.size();
 
                 TicToc t_opt;
@@ -280,13 +283,17 @@ int main(int argc, char **argv)
                     corner_correspondence = 0;
                     plane_correspondence = 0;
 
-                    //ceres::LossFunction *loss_function = NULL;
+                    // ceres::LossFunction *loss_function = NULL;
                     ceres::LossFunction *loss_function = new ceres::HuberLoss(0.1);
+                    // 实现参数本地化
+                    // 作用是解决非线性优化中的过参数化问题
                     ceres::LocalParameterization *q_parameterization =
                         new ceres::EigenQuaternionParameterization();
                     ceres::Problem::Options problem_options;
 
                     ceres::Problem problem(problem_options);
+                    // 用户显式传递参数模块
+                    // 传入q_parameterization用于重构优化参数的维数
                     problem.AddParameterBlock(para_q, 4, q_parameterization);
                     problem.AddParameterBlock(para_t, 3);
 
@@ -378,6 +385,7 @@ int main(int argc, char **argv)
                             else
                                 s = 1.0;
                             ceres::CostFunction *cost_function = LidarEdgeFactor::Create(curr_point, last_point_a, last_point_b, s);
+                            // 传递残差模块信息
                             problem.AddResidualBlock(cost_function, loss_function, para_q, para_t);
                             corner_correspondence++;
                         }
@@ -458,17 +466,17 @@ int main(int argc, char **argv)
                             {
 
                                 Eigen::Vector3d curr_point(surfPointsFlat->points[i].x,
-                                                            surfPointsFlat->points[i].y,
-                                                            surfPointsFlat->points[i].z);
+                                                           surfPointsFlat->points[i].y,
+                                                           surfPointsFlat->points[i].z);
                                 Eigen::Vector3d last_point_a(laserCloudSurfLast->points[closestPointInd].x,
-                                                                laserCloudSurfLast->points[closestPointInd].y,
-                                                                laserCloudSurfLast->points[closestPointInd].z);
+                                                             laserCloudSurfLast->points[closestPointInd].y,
+                                                             laserCloudSurfLast->points[closestPointInd].z);
                                 Eigen::Vector3d last_point_b(laserCloudSurfLast->points[minPointInd2].x,
-                                                                laserCloudSurfLast->points[minPointInd2].y,
-                                                                laserCloudSurfLast->points[minPointInd2].z);
+                                                             laserCloudSurfLast->points[minPointInd2].y,
+                                                             laserCloudSurfLast->points[minPointInd2].z);
                                 Eigen::Vector3d last_point_c(laserCloudSurfLast->points[minPointInd3].x,
-                                                                laserCloudSurfLast->points[minPointInd3].y,
-                                                                laserCloudSurfLast->points[minPointInd3].z);
+                                                             laserCloudSurfLast->points[minPointInd3].y,
+                                                             laserCloudSurfLast->points[minPointInd3].z);
 
                                 double s;
                                 if (DISTORTION)
@@ -482,7 +490,7 @@ int main(int argc, char **argv)
                         }
                     }
 
-                    //printf("coner_correspondance %d, plane_correspondence %d \n", corner_correspondence, plane_correspondence);
+                    // printf("coner_correspondance %d, plane_correspondence %d \n", corner_correspondence, plane_correspondence);
                     printf("data association time %f ms \n", t_data.toc());
 
                     if ((corner_correspondence + plane_correspondence) < 10)
@@ -591,7 +599,7 @@ int main(int argc, char **argv)
             }
             printf("publication time %f ms \n", t_pub.toc());
             printf("whole laserOdometry time %f ms \n \n", t_whole.toc());
-            if(t_whole.toc() > 100)
+            if (t_whole.toc() > 100)
                 ROS_WARN("odometry process over 100ms");
 
             frameCount++;
