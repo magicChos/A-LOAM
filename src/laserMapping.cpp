@@ -75,8 +75,11 @@ const int laserCloudWidth = 21;
 const int laserCloudHeight = 21;
 const int laserCloudDepth = 11;
 
+// cube的总数量，也就是上图中的所有小格子个总数量 21 * 21 * 11 = 4851
+// https://img2020.cnblogs.com/blog/1308994/202005/1308994-20200512225250599-733337671.png
 const int laserCloudNum = laserCloudWidth * laserCloudHeight * laserCloudDepth; // 4851
 
+// 记录cube索引
 int laserCloudValidInd[125];
 int laserCloudSurroundInd[125];
 
@@ -103,7 +106,11 @@ pcl::KdTreeFLANN<PointType>::Ptr kdtreeCornerFromMap(new pcl::KdTreeFLANN<PointT
 pcl::KdTreeFLANN<PointType>::Ptr kdtreeSurfFromMap(new pcl::KdTreeFLANN<PointType>());
 
 double parameters[7] = {0, 0, 0, 1, 0, 0, 0};
+
+// 记录当前到world坐标系的变换
 Eigen::Map<Eigen::Quaterniond> q_w_curr(parameters);
+
+// 记录当前到world坐标系的平移
 Eigen::Map<Eigen::Vector3d> t_w_curr(parameters + 4);
 
 // wmap_T_odom * odom_T_curr = wmap_T_curr;
@@ -201,6 +208,7 @@ void laserOdometryHandler(const nav_msgs::Odometry::ConstPtr &laserOdometry)
 	mBuf.unlock();
 
 	// high frequence publish
+	// Odometry线程计算的frame在world坐标系的位姿
 	Eigen::Quaterniond q_wodom_curr;
 	Eigen::Vector3d t_wodom_curr;
 	q_wodom_curr.x() = laserOdometry->pose.pose.orientation.x;
@@ -309,6 +317,7 @@ void process()
 			transformAssociateToMap();
 
 			TicToc t_shift;
+			// 下面这是计算当前帧位置t_w_curr（在上图中用红色五角星表示的位置）IJK坐标（见上图中的坐标轴）
 			int centerCubeI = int((t_w_curr.x() + 25.0) / 50.0) + laserCloudCenWidth;
 			int centerCubeJ = int((t_w_curr.y() + 25.0) / 50.0) + laserCloudCenHeight;
 			int centerCubeK = int((t_w_curr.z() + 25.0) / 50.0) + laserCloudCenDepth;
@@ -319,6 +328,10 @@ void process()
 				centerCubeJ--;
 			if (t_w_curr.z() + 25.0 < 0)
 				centerCubeK--;
+
+			// 下面6个循环的作用
+			// 3 < centerCubeI < 18， 3 < centerCubeJ < 18, 3 < centerCubeK < 8，目的是为了防止后续向
+			// 四周拓展cube（图中的黄色cube就是拓展的cube）时，index（即IJK坐标）成为负数
 
 			while (centerCubeI < 3)
 			{
@@ -562,6 +575,7 @@ void process()
 				{
 					// ceres::LossFunction *loss_function = NULL;
 					ceres::LossFunction *loss_function = new ceres::HuberLoss(0.1);
+					// 参数本地化
 					ceres::LocalParameterization *q_parameterization =
 						new ceres::EigenQuaternionParameterization();
 					ceres::Problem::Options problem_options;
@@ -583,6 +597,8 @@ void process()
 						if (pointSearchSqDis[4] < 1.0)
 						{
 							std::vector<Eigen::Vector3d> nearCorners;
+
+							// 记录五个点的中心点坐标
 							Eigen::Vector3d center(0, 0, 0);
 							for (int j = 0; j < 5; j++)
 							{
@@ -601,16 +617,20 @@ void process()
 								covMat = covMat + tmpZeroMean * tmpZeroMean.transpose();
 							}
 
+							// 计算特征值和特征向量
 							Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> saes(covMat);
 
 							// if is indeed line feature
 							// note Eigen library sort eigenvalues in increasing order
+							// 如果的确是线特征，Eigen库按升序排列特征值
 							Eigen::Vector3d unit_direction = saes.eigenvectors().col(2);
 							Eigen::Vector3d curr_point(pointOri.x, pointOri.y, pointOri.z);
 							if (saes.eigenvalues()[2] > 3 * saes.eigenvalues()[1])
 							{
 								Eigen::Vector3d point_on_line = center;
 								Eigen::Vector3d point_a, point_b;
+
+								// 从中心点向两端各移动0.1米
 								point_a = 0.1 * unit_direction + point_on_line;
 								point_b = -0.1 * unit_direction + point_on_line;
 
@@ -646,6 +666,7 @@ void process()
 						pointAssociateToMap(&pointOri, &pointSel);
 						kdtreeSurfFromMap->nearestKSearch(pointSel, 5, pointSearchInd, pointSearchSqDis);
 
+						// 假设平面方程ax+by+cz+1=0
 						Eigen::Matrix<double, 5, 3> matA0;
 						Eigen::Matrix<double, 5, 1> matB0 = -1 * Eigen::Matrix<double, 5, 1>::Ones();
 						if (pointSearchSqDis[4] < 1.0)
@@ -659,7 +680,9 @@ void process()
 								// printf(" pts %f %f %f ", matA0(j, 0), matA0(j, 1), matA0(j, 2));
 							}
 							// find the norm of plane
+							// QR分解计算平面的法向量
 							Eigen::Vector3d norm = matA0.colPivHouseholderQr().solve(matB0);
+							// d
 							double negative_OA_dot_norm = 1 / norm.norm();
 							norm.normalize();
 

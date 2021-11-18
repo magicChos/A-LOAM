@@ -9,6 +9,7 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl_conversions/pcl_conversions.h>
 
+// 点到线的残差距离计算
 struct LidarEdgeFactor
 {
 	LidarEdgeFactor(Eigen::Vector3d curr_point_, Eigen::Vector3d last_point_a_,
@@ -47,6 +48,11 @@ struct LidarEdgeFactor
 	{
 		return (new ceres::AutoDiffCostFunction<
 				LidarEdgeFactor, 3, 4, 3>(
+//                               ^  ^  ^
+//                               |  |  |
+//                  残差的维度 ____|  |  |
+//              优化变量q的维度 _______|  |
+//              优化变量t的维度 __________|
 			new LidarEdgeFactor(curr_point_, last_point_a_, last_point_b_, s_)));
 	}
 
@@ -137,12 +143,11 @@ struct LidarPlaneNormFactor
 	double negative_OA_dot_norm;
 };
 
-
 struct LidarDistanceFactor
 {
 
-	LidarDistanceFactor(Eigen::Vector3d curr_point_, Eigen::Vector3d closed_point_) 
-						: curr_point(curr_point_), closed_point(closed_point_){}
+	LidarDistanceFactor(Eigen::Vector3d curr_point_, Eigen::Vector3d closed_point_)
+		: curr_point(curr_point_), closed_point(closed_point_) {}
 
 	template <typename T>
 	bool operator()(const T *q, const T *t, T *residual) const
@@ -152,7 +157,6 @@ struct LidarDistanceFactor
 		Eigen::Matrix<T, 3, 1> cp{T(curr_point.x()), T(curr_point.y()), T(curr_point.z())};
 		Eigen::Matrix<T, 3, 1> point_w;
 		point_w = q_w_curr * cp + t_w_curr;
-
 
 		residual[0] = point_w.x() - T(closed_point.x());
 		residual[1] = point_w.y() - T(closed_point.y());

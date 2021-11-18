@@ -61,6 +61,8 @@ const int systemDelay = 0;
 int systemInitCount = 0;
 bool systemInited = false;
 int N_SCANS = 0;
+
+// 记录每个点的曲率
 float cloudCurvature[400000];
 int cloudSortInd[400000];
 int cloudNeighborPicked[400000];
@@ -153,7 +155,9 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
 
     bool halfPassed = false;
     int count = cloudSize;
+    // 记录当前点坐标
     PointType point;
+    // 记录每个扫描线的点云数据
     std::vector<pcl::PointCloud<PointType>> laserCloudScans(N_SCANS);
     for (int i = 0; i < cloudSize; i++)
     {
@@ -166,6 +170,7 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
 
         if (N_SCANS == 16)
         {
+            // scanID为何这么计算？
             scanID = int((angle + 15) / 2 + 0.5);
             if (scanID > (N_SCANS - 1) || scanID < 0)
             {
@@ -282,6 +287,7 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
             int ep = scanStartInd[i] + (scanEndInd[i] - scanStartInd[i]) * (j + 1) / 6 - 1;
 
             TicToc t_tmp;
+            // ?
             std::sort(cloudSortInd + sp, cloudSortInd + ep + 1, comp);
             t_q_sort += t_tmp.toc();
 
