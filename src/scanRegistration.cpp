@@ -65,7 +65,15 @@ int N_SCANS = 0;
 // 记录每个点的曲率
 float cloudCurvature[400000];
 int cloudSortInd[400000];
+
+// 记录点是否被选择特征点
 int cloudNeighborPicked[400000];
+
+// Label 2: corner_sharp
+// Label 1: corner_less_sharp, 包含Label 2
+// Label -1: surf_flat
+// Label 0: surf_less_flat， 包含Label -1，因为点太多，最后会降采样
+// 记录特征点类型
 int cloudLabel[400000];
 
 bool comp(int i, int j) { return (cloudCurvature[i] < cloudCurvature[j]); }
@@ -127,7 +135,10 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
 
     TicToc t_whole;
     TicToc t_prepare;
+
+    // 记录每个扫描线的起始点索引
     std::vector<int> scanStartInd(N_SCANS, 0);
+    // 记录每个扫描线的终止点索引
     std::vector<int> scanEndInd(N_SCANS, 0);
 
     pcl::PointCloud<pcl::PointXYZ> laserCloudIn;
@@ -281,8 +292,11 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
         if (scanEndInd[i] - scanStartInd[i] < 6)
             continue;
         pcl::PointCloud<PointType>::Ptr surfPointsLessFlatScan(new pcl::PointCloud<PointType>);
+
+        // 分成6段
         for (int j = 0; j < 6; j++)
         {
+            // 每段的起始点索引和终止点索引
             int sp = scanStartInd[i] + (scanEndInd[i] - scanStartInd[i]) * j / 6;
             int ep = scanStartInd[i] + (scanEndInd[i] - scanStartInd[i]) * (j + 1) / 6 - 1;
 
@@ -291,6 +305,7 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
             std::sort(cloudSortInd + sp, cloudSortInd + ep + 1, comp);
             t_q_sort += t_tmp.toc();
 
+            // 记录曲率最大的点数
             int largestPickedNum = 0;
             for (int k = ep; k >= sp; k--)
             {
@@ -319,6 +334,7 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
 
                     cloudNeighborPicked[ind] = 1;
 
+                    // 与当前点距离平方和小于0.05时，选择跳过将当前点标记为已选择，防止特征点密集分布
                     for (int l = 1; l <= 5; l++)
                     {
                         float diffX = laserCloud->points[ind + l].x - laserCloud->points[ind + l - 1].x;
