@@ -60,6 +60,10 @@
 #include "lidarFactor.hpp"
 #include "aloam_velodyne/common.h"
 #include "aloam_velodyne/tic_toc.h"
+#include "aloam_velodyne/log.h"
+
+
+utils::common::Log plog("alaserMapping.log");
 
 int frameCount = 0;
 
@@ -150,6 +154,7 @@ void transformAssociateToMap()
 	t_w_curr = q_wmap_wodom * t_wodom_curr + t_wmap_wodom;
 }
 
+// 更新增量
 void transformUpdate()
 {
 	q_wmap_wodom = q_w_curr * q_wodom_curr.inverse();
@@ -238,6 +243,7 @@ void laserOdometryHandler(const nav_msgs::Odometry::ConstPtr &laserOdometry)
 
 void process()
 {
+	LogInfo("step into process");
 	while (1)
 	{
 		while (!cornerLastBuf.empty() && !surfLastBuf.empty() &&
@@ -279,6 +285,7 @@ void process()
 			{
 				printf("time corner %f surf %f full %f odom %f \n", timeLaserCloudCornerLast, timeLaserCloudSurfLast, timeLaserCloudFullRes, timeLaserOdometry);
 				printf("unsync messeage!");
+				LogWarn("unsync messeage!");
 				mBuf.unlock();
 				break;
 			}
@@ -753,6 +760,8 @@ void process()
 			{
 				ROS_WARN("time Map corner and surf num are not enough");
 			}
+
+			// 更新odom到map的变换
 			transformUpdate();
 
 			TicToc t_add;
@@ -917,7 +926,7 @@ int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "laserMapping");
 	ros::NodeHandle nh;
-
+	LogInfo("run into laserMapping");
 	float lineRes = 0;
 	float planeRes = 0;
 	nh.param<float>("mapping_line_resolution", lineRes, 0.4);

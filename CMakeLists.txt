@@ -36,17 +36,21 @@ catkin_package(
   INCLUDE_DIRS include
 )
 
+set(UTILS_SRC
+  src/log.cpp
+)
 
-add_executable(ascanRegistration src/scanRegistration.cpp)
+
+add_executable(ascanRegistration src/scanRegistration.cpp ${UTILS_SRC})
 target_link_libraries(ascanRegistration ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
-add_executable(alaserOdometry src/laserOdometry.cpp)
+add_executable(alaserOdometry src/laserOdometry.cpp ${UTILS_SRC})
 target_link_libraries(alaserOdometry ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES})
 
-add_executable(alaserMapping src/laserMapping.cpp)
+add_executable(alaserMapping src/laserMapping.cpp ${UTILS_SRC})
 target_link_libraries(alaserMapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES})
 
-add_executable(kittiHelper src/kittiHelper.cpp)
+add_executable(kittiHelper src/kittiHelper.cpp ${UTILS_SRC})
 target_link_libraries(kittiHelper ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS})
 
 

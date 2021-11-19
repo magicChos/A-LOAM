@@ -107,6 +107,7 @@ std::queue<sensor_msgs::PointCloud2ConstPtr> fullPointsBuf;
 std::mutex mBuf;
 
 // undistort lidar point
+// 将当前帧Lidar坐标系下的点云变换到上一帧Lidar坐标系下，也就是当前帧的起始时刻
 void TransformToStart(PointType const *const pi, PointType *const po)
 {
     // interpolation ratio
@@ -116,6 +117,7 @@ void TransformToStart(PointType const *const pi, PointType *const po)
     else
         s = 1.0;
     // s = 1;
+    // q_last_curr: 后帧相对前阵的变换
     Eigen::Quaterniond q_point_last = Eigen::Quaterniond::Identity().slerp(s, q_last_curr);
     Eigen::Vector3d t_point_last = s * t_last_curr;
     Eigen::Vector3d point(pi->x, pi->y, pi->z);
