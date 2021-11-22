@@ -101,10 +101,16 @@ struct LidarPlaneFactor
 	{
 		return (new ceres::AutoDiffCostFunction<
 				LidarPlaneFactor, 1, 4, 3>(
+//                                ^  ^  ^
+//                                |  |  |
+//                   残差的维度 ____|  |  |
+//               优化变量q的维度 _______|  |
+//               优化变量t的维度 __________|
 			new LidarPlaneFactor(curr_point_, last_point_j_, last_point_l_, last_point_m_, s_)));
 	}
 
 	Eigen::Vector3d curr_point, last_point_j, last_point_l, last_point_m;
+	// 记录ljm平面的法向量
 	Eigen::Vector3d ljm_norm;
 	double s;
 };
