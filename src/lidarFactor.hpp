@@ -24,7 +24,7 @@ struct LidarEdgeFactor
 		Eigen::Matrix<T, 3, 1> lpa{T(last_point_a.x()), T(last_point_a.y()), T(last_point_a.z())};
 		Eigen::Matrix<T, 3, 1> lpb{T(last_point_b.x()), T(last_point_b.y()), T(last_point_b.z())};
 
-		//Eigen::Quaternion<T> q_last_curr{q[3], T(s) * q[0], T(s) * q[1], T(s) * q[2]};
+		// Eigen::Quaternion<T> q_last_curr{q[3], T(s) * q[0], T(s) * q[1], T(s) * q[2]};
 		Eigen::Quaternion<T> q_last_curr{q[3], q[0], q[1], q[2]};
 		Eigen::Quaternion<T> q_identity{T(1), T(0), T(0), T(0)};
 		q_last_curr = q_identity.slerp(T(s), q_last_curr);
@@ -48,11 +48,11 @@ struct LidarEdgeFactor
 	{
 		return (new ceres::AutoDiffCostFunction<
 				LidarEdgeFactor, 3, 4, 3>(
-//                               ^  ^  ^
-//                               |  |  |
-//                  残差的维度 ____|  |  |
-//              优化变量q的维度 _______|  |
-//              优化变量t的维度 __________|
+			//                               ^  ^  ^
+			//                               |  |  |
+			//                  残差的维度 ____|  |  |
+			//              优化变量q的维度 _______|  |
+			//              优化变量t的维度 __________|
 			new LidarEdgeFactor(curr_point_, last_point_a_, last_point_b_, s_)));
 	}
 
@@ -77,11 +77,11 @@ struct LidarPlaneFactor
 
 		Eigen::Matrix<T, 3, 1> cp{T(curr_point.x()), T(curr_point.y()), T(curr_point.z())};
 		Eigen::Matrix<T, 3, 1> lpj{T(last_point_j.x()), T(last_point_j.y()), T(last_point_j.z())};
-		//Eigen::Matrix<T, 3, 1> lpl{T(last_point_l.x()), T(last_point_l.y()), T(last_point_l.z())};
-		//Eigen::Matrix<T, 3, 1> lpm{T(last_point_m.x()), T(last_point_m.y()), T(last_point_m.z())};
+		// Eigen::Matrix<T, 3, 1> lpl{T(last_point_l.x()), T(last_point_l.y()), T(last_point_l.z())};
+		// Eigen::Matrix<T, 3, 1> lpm{T(last_point_m.x()), T(last_point_m.y()), T(last_point_m.z())};
 		Eigen::Matrix<T, 3, 1> ljm{T(ljm_norm.x()), T(ljm_norm.y()), T(ljm_norm.z())};
 
-		//Eigen::Quaternion<T> q_last_curr{q[3], T(s) * q[0], T(s) * q[1], T(s) * q[2]};
+		// Eigen::Quaternion<T> q_last_curr{q[3], T(s) * q[0], T(s) * q[1], T(s) * q[2]};
 		Eigen::Quaternion<T> q_last_curr{q[3], q[0], q[1], q[2]};
 		Eigen::Quaternion<T> q_identity{T(1), T(0), T(0), T(0)};
 		q_last_curr = q_identity.slerp(T(s), q_last_curr);
@@ -101,11 +101,11 @@ struct LidarPlaneFactor
 	{
 		return (new ceres::AutoDiffCostFunction<
 				LidarPlaneFactor, 1, 4, 3>(
-//                                ^  ^  ^
-//                                |  |  |
-//                   残差的维度 ____|  |  |
-//               优化变量q的维度 _______|  |
-//               优化变量t的维度 __________|
+			//                                ^  ^  ^
+			//                                |  |  |
+			//                   残差的维度 ____|  |  |
+			//               优化变量q的维度 _______|  |
+			//               优化变量t的维度 __________|
 			new LidarPlaneFactor(curr_point_, last_point_j_, last_point_l_, last_point_m_, s_)));
 	}
 

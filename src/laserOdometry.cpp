@@ -75,9 +75,14 @@ double timeLaserCloudFullRes = 0;
 pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeCornerLast(new pcl::KdTreeFLANN<pcl::PointXYZI>());
 pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeSurfLast(new pcl::KdTreeFLANN<pcl::PointXYZI>());
 
+// 尖锐的角点
 pcl::PointCloud<PointType>::Ptr cornerPointsSharp(new pcl::PointCloud<PointType>());
+
+// 记录不尖锐的角点
 pcl::PointCloud<PointType>::Ptr cornerPointsLessSharp(new pcl::PointCloud<PointType>());
+// 平面点
 pcl::PointCloud<PointType>::Ptr surfPointsFlat(new pcl::PointCloud<PointType>());
+// 不那么平的点
 pcl::PointCloud<PointType>::Ptr surfPointsLessFlat(new pcl::PointCloud<PointType>());
 
 pcl::PointCloud<PointType>::Ptr laserCloudCornerLast(new pcl::PointCloud<PointType>());
@@ -88,21 +93,26 @@ int laserCloudCornerLastNum = 0;
 int laserCloudSurfLastNum = 0;
 
 // Transformation from current frame to world frame
+// 记录当前帧到世界坐标系的变换
 Eigen::Quaterniond q_w_curr(1, 0, 0, 0);
+// 记录当前帧到世界坐标系的平移
 Eigen::Vector3d t_w_curr(0, 0, 0);
 
 // q_curr_last(x, y, z, w), t_curr_last
 double para_q[4] = {0, 0, 0, 1};
 double para_t[3] = {0, 0, 0};
 
-// 记录在world坐标系下的位姿增量
+// 记录当前帧和上一帧的相对位姿关系
 Eigen::Map<Eigen::Quaterniond> q_last_curr(para_q);
 Eigen::Map<Eigen::Vector3d> t_last_curr(para_t);
 
+// 记录尖锐的角点数据
 std::queue<sensor_msgs::PointCloud2ConstPtr> cornerSharpBuf;
+// 记录平缓的角点数据
 std::queue<sensor_msgs::PointCloud2ConstPtr> cornerLessSharpBuf;
 std::queue<sensor_msgs::PointCloud2ConstPtr> surfFlatBuf;
 std::queue<sensor_msgs::PointCloud2ConstPtr> surfLessFlatBuf;
+// 记录全部点云数据
 std::queue<sensor_msgs::PointCloud2ConstPtr> fullPointsBuf;
 std::mutex mBuf;
 
@@ -130,7 +140,12 @@ void TransformToStart(PointType const *const pi, PointType *const po)
 }
 
 // transform all lidar points to the start of the next frame
-
+/**
+ * @brief 将所有lidar点变换到下一帧的起始时刻
+ * 
+ * @param pi[in] 
+ * @param po[out] 
+ */
 void TransformToEnd(PointType const *const pi, PointType *const po)
 {
     // undistort point first
@@ -300,6 +315,7 @@ int main(int argc, char **argv)
                     problem.AddParameterBlock(para_q, 4, q_parameterization);
                     problem.AddParameterBlock(para_t, 3);
 
+                    // 记录当前点变换到起始时刻的坐标
                     pcl::PointXYZI pointSel;
                     std::vector<int> pointSearchInd;
                     std::vector<float> pointSearchSqDis;
@@ -311,10 +327,14 @@ int main(int argc, char **argv)
                         TransformToStart(&(cornerPointsSharp->points[i]), &pointSel);
                         kdtreeCornerLast->nearestKSearch(pointSel, 1, pointSearchInd, pointSearchSqDis);
 
-                        int closestPointInd = -1, minPointInd2 = -1;
+                        // 记录当前点最近点索引
+                        int closestPointInd = -1;
+                        // 记录第二个最近点索引
+                        int minPointInd2 = -1;
                         if (pointSearchSqDis[0] < DISTANCE_SQ_THRESHOLD)
                         {
                             closestPointInd = pointSearchInd[0];
+                            // 最近点的扫描id
                             int closestPointScanID = int(laserCloudCornerLast->points[closestPointInd].intensity);
 
                             double minPointSqDis2 = DISTANCE_SQ_THRESHOLD;
@@ -372,12 +392,15 @@ int main(int argc, char **argv)
                         }
                         if (minPointInd2 >= 0) // both closestPointInd and minPointInd2 is valid
                         {
+                            // 当前点
                             Eigen::Vector3d curr_point(cornerPointsSharp->points[i].x,
                                                        cornerPointsSharp->points[i].y,
                                                        cornerPointsSharp->points[i].z);
+                            // 上一个最近点a
                             Eigen::Vector3d last_point_a(laserCloudCornerLast->points[closestPointInd].x,
                                                          laserCloudCornerLast->points[closestPointInd].y,
                                                          laserCloudCornerLast->points[closestPointInd].z);
+                            // 上一个最近点b
                             Eigen::Vector3d last_point_b(laserCloudCornerLast->points[minPointInd2].x,
                                                          laserCloudCornerLast->points[minPointInd2].y,
                                                          laserCloudCornerLast->points[minPointInd2].z);
