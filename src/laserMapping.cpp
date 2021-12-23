@@ -147,7 +147,7 @@ nav_msgs::Path laserAfterMappedPath;
 // set initial guess
 // P_odometry = q_wodom_curr * P_curr + t_wodom_curr
 // P_wmap = q_wmap_wodom * P_odometry + t_wmap_wodom
-// 计算当前到世界坐标系下的变换
+// 计算当前到世界坐标系下的变换矩阵
 void transformAssociateToMap()
 {
 	q_w_curr = q_wmap_wodom * q_wodom_curr;
@@ -161,7 +161,12 @@ void transformUpdate()
 	t_wmap_wodom = t_w_curr - q_wmap_wodom * t_wodom_curr;
 }
 
-// 当前点变换到世界坐标系下
+/**
+ * @brief 当前点变换到世界坐标系下
+ * 
+ * @param pi[in] 
+ * @param po[out] 世界坐标系下点坐标 
+ */
 void pointAssociateToMap(PointType const *const pi, PointType *const po)
 {
 	Eigen::Vector3d point_curr(pi->x, pi->y, pi->z);
@@ -597,7 +602,7 @@ void process()
 					for (int i = 0; i < laserCloudCornerStackNum; i++)
 					{
 						pointOri = laserCloudCornerStack->points[i];
-						// double sqrtDis = pointOri.x * pointOri.x + pointOri.y * pointOri.y + pointOri.z * pointOri.z;
+			
 						pointAssociateToMap(&pointOri, &pointSel);
 						kdtreeCornerFromMap->nearestKSearch(pointSel, 5, pointSearchInd, pointSearchSqDis);
 
