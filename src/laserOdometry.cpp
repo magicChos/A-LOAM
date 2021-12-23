@@ -84,7 +84,7 @@ pcl::PointCloud<PointType>::Ptr cornerPointsLessSharp(new pcl::PointCloud<PointT
 pcl::PointCloud<PointType>::Ptr surfPointsFlat(new pcl::PointCloud<PointType>());
 // 不那么平的点
 pcl::PointCloud<PointType>::Ptr surfPointsLessFlat(new pcl::PointCloud<PointType>());
-
+// 记录上一帧角点点云数据
 pcl::PointCloud<PointType>::Ptr laserCloudCornerLast(new pcl::PointCloud<PointType>());
 pcl::PointCloud<PointType>::Ptr laserCloudSurfLast(new pcl::PointCloud<PointType>());
 pcl::PointCloud<PointType>::Ptr laserCloudFullRes(new pcl::PointCloud<PointType>());
@@ -116,8 +116,12 @@ std::queue<sensor_msgs::PointCloud2ConstPtr> surfLessFlatBuf;
 std::queue<sensor_msgs::PointCloud2ConstPtr> fullPointsBuf;
 std::mutex mBuf;
 
-// undistort lidar point
-// 将当前帧Lidar坐标系下的点云变换到上一帧Lidar坐标系下，也就是当前帧的起始时刻
+/**
+ * @brief 将当前帧Lidar坐标系下的点云变换到上一帧Lidar坐标系下，也就是当前帧的起始时刻
+ *
+ * @param pi[in]
+ * @param po[out] 输出当前帧起始时刻的坐标
+ */
 void TransformToStart(PointType const *const pi, PointType *const po)
 {
     // interpolation ratio
@@ -142,9 +146,9 @@ void TransformToStart(PointType const *const pi, PointType *const po)
 // transform all lidar points to the start of the next frame
 /**
  * @brief 将所有lidar点变换到下一帧的起始时刻
- * 
- * @param pi[in] 
- * @param po[out] 
+ *
+ * @param pi[in]
+ * @param po[out]
  */
 void TransformToEnd(PointType const *const pi, PointType *const po)
 {
@@ -535,6 +539,7 @@ int main(int argc, char **argv)
                 }
                 printf("optimization twice time %f \n", t_opt.toc());
 
+                // 公式右边的q_w_curr代表的是上一帧
                 t_w_curr = t_w_curr + q_w_curr * t_last_curr;
                 q_w_curr = q_w_curr * q_last_curr;
             }
