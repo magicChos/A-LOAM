@@ -119,6 +119,7 @@ Eigen::Map<Eigen::Vector3d> t_w_curr(parameters + 4);
 
 // wmap_T_odom * odom_T_curr = wmap_T_curr;
 // transformation between odom's world and map's world frame
+// odom'world到map's world
 Eigen::Quaterniond q_wmap_wodom(1, 0, 0, 0);
 Eigen::Vector3d t_wmap_wodom(0, 0, 0);
 
@@ -129,6 +130,7 @@ Eigen::Vector3d t_wodom_curr(0, 0, 0);
 std::queue<sensor_msgs::PointCloud2ConstPtr> cornerLastBuf;
 std::queue<sensor_msgs::PointCloud2ConstPtr> surfLastBuf;
 std::queue<sensor_msgs::PointCloud2ConstPtr> fullResBuf;
+// 缓存激光odometry信息
 std::queue<nav_msgs::Odometry::ConstPtr> odometryBuf;
 std::mutex mBuf;
 
