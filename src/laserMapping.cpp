@@ -127,9 +127,14 @@ Eigen::Vector3d t_wmap_wodom(0, 0, 0);
 Eigen::Quaterniond q_wodom_curr(1, 0, 0, 0);
 Eigen::Vector3d t_wodom_curr(0, 0, 0);
 
+// 缓存所有的角点数据
 std::queue<sensor_msgs::PointCloud2ConstPtr> cornerLastBuf;
+
+// 缓存所有的平面点
 std::queue<sensor_msgs::PointCloud2ConstPtr> surfLastBuf;
+// 缓存所有点云数据
 std::queue<sensor_msgs::PointCloud2ConstPtr> fullResBuf;
+
 // 缓存激光odometry信息
 std::queue<nav_msgs::Odometry::ConstPtr> odometryBuf;
 std::mutex mBuf;
@@ -231,6 +236,7 @@ void laserOdometryHandler(const nav_msgs::Odometry::ConstPtr &laserOdometry)
 	t_wodom_curr.y() = laserOdometry->pose.pose.position.y;
 	t_wodom_curr.z() = laserOdometry->pose.pose.position.z;
 
+	// 当前到world的变换
 	Eigen::Quaterniond q_w_curr = q_wmap_wodom * q_wodom_curr;
 	Eigen::Vector3d t_w_curr = q_wmap_wodom * t_wodom_curr + t_wmap_wodom;
 
